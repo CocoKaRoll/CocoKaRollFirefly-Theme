@@ -120,4 +120,11 @@ export type BackgroundWallpaperConfig = {
 				  }; // 是否启用模糊渐变，支持布尔值或分别设置桌面端和移动端，默认 true
 		};
 	};
+	// 全局毛玻璃（Frosted Glass）配置
+	// 统一驱动全站玻璃面：导航栏 / 浮层面板 / 卡片 / 按钮 / 系列导航
+	glass?: {
+		enable?: boolean; // 总开关，false 时不下发 data-glass，全站退回不透明卡片，默认 true
+		blur?: number; // 玻璃面模糊半径，单位px（内部裁剪到 0-40），0 即关闭模糊，默认 12
+		surfaceAlpha?: number; // 玻璃面不透明度，0.3-1 之间，越接近 1 越实，默认 0.94
+	};
 };

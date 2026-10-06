@@ -3,6 +3,24 @@ import type { BackgroundWallpaperConfig } from "@/types/backgroundWallpaper";
 export const backgroundWallpaper: BackgroundWallpaperConfig = {
 	// 壁纸模式："banner" 横幅壁纸，"fullscreen" 全屏壁纸，"overlay" 覆盖透明，"none" 纯色背景无壁纸
 	mode: "banner",
+	/**
+	 * 全局毛玻璃（Frosted Glass）
+	 * ------------------------------------------------------------
+	 * 把导航栏 / 浮层面板 / 卡片 / 按钮统一成一套玻璃观感，
+	 * 由 :root 上的 --glass-blur 与 --glass-surface-alpha 驱动（见 src/styles/glass.css）。
+	 * 只在「当前存在壁纸」时生效：纯色背景（mode: "none"）下不存在可模糊对象，
+	 * 会自动整站退回不透明卡片，不做无谓的 backdrop-filter 开销。
+	 *
+	 * 想整体调观感只改这三个数：
+	 *   blur        模糊半径，越大越糊。12 是「轻量磨砂」，20 以上偏重，0 即关闭模糊
+	 *   surfaceAlpha 玻璃面不透明度，越接近 1 越实、越透明越能看到壁纸
+	 *   enable      false 时整站关闭毛玻璃（性能优先 / 视觉回退用）
+	 */
+	glass: {
+		enable: true,
+		blur: 12,
+		surfaceAlpha: 0.94,
+	},
 	// 是否启用背景视频播放，配置后将在导航栏显示视频播放按钮
 	playerEnable: true,
 	/**

@@ -24,7 +24,14 @@
   --enter-btn-bg: var(--btn-regular-bg)
   --enter-btn-bg-hover: var(--btn-regular-bg-hover)
   --enter-btn-bg-active: var(--btn-regular-bg-active)
-  
+
+  /* ===== 毛玻璃（Glass）令牌 - 亮色 =====
+     全局玻璃面的固定色（边缘 / 交互环 / 内高光）。
+     模糊半径与面不透明度在 src/styles/glass.css，由 backgroundWallpaper.glass 注入 */
+  --glass-border: rgba(0, 0, 0, 0.06)
+  --glass-ring: rgba(0, 0, 0, 0.55)
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18)
+
   --deep-text: oklch(0.25 0.02 var(--hue))
   --title-active: oklch(0.6 0.1 var(--hue))
   
@@ -97,6 +104,11 @@
   /* 导航栏玻璃高光与发丝线（暗色） */
   --navbar-glass-highlight: rgba(255, 255, 255, 0.06)
   --navbar-glass-hairline: rgba(255, 255, 255, 0.10)
+
+  /* ===== 毛玻璃（Glass）令牌 - 暗色 ===== */
+  --glass-border: rgba(255, 255, 255, 0.10)
+  --glass-ring: rgba(255, 255, 255, 0.45)
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06)
 
   --btn-content: oklch(0.75 0.1 var(--hue))
   --btn-regular-bg: oklch(0.33 0.035 var(--hue))

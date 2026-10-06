@@ -99,6 +99,18 @@ const navbarPanelBlur = Math.max(
 	NAVBAR_PANEL_MIN_BLUR,
 );
 
+// 全局毛玻璃（Glass）配置：模糊半径与玻璃面不透明度。
+// 这两个值决定全站玻璃面（卡片 / 按钮 / 面板 / 导航栏）的观感，
+// 数值在这里归一化后注入 :root，CSS 侧只消费 --glass-blur / --glass-surface-alpha，
+// 不在任何组件里硬编码半径，便于统一调整。
+const glassConfig = backgroundWallpaper.glass ?? {};
+const glassEnabled = glassConfig.enable !== false;
+const glassBlur = Math.min(Math.max(glassConfig.blur ?? 12, 0), 40);
+const glassSurfaceAlpha = Math.min(
+	Math.max(glassConfig.surfaceAlpha ?? 0.94, 0.3),
+	1,
+);
+
 let pageTitle: string;
 if (title) {
 	pageTitle = `${title} - ${siteConfig.title}`;
@@ -481,6 +493,8 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
         configHue,
         "page-width": `${siteConfig.pageWidth ?? PAGE_WIDTH}rem`,
         "navbar-panel-blur": `${navbarPanelBlur}px`,
+        "glass-blur": `${glassBlur}px`,
+        "glass-surface-alpha": String(glassSurfaceAlpha),
         "banner-height-home": `${BANNER_HEIGHT_HOME}vh`,
         "banner-height-non-home": `max(${BANNER_HEIGHT_NON_HOME}vh, ${BANNER_HEIGHT_NON_HOME_MIN}px)`,
         "banner-height": `${BANNER_HEIGHT}vh`,
@@ -520,14 +534,49 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
     <!-- 首帧前按运行时壁纸模式翻转卡片透明类（布局已由 data-wallpaper-mode 属性规则接管） -->
     <script is:inline>
       (function () {
-        const wm = document.documentElement.getAttribute("data-wallpaper-mode");
+        const html = document.documentElement;
+        const wm = html.getAttribute("data-wallpaper-mode");
         if (!wm) return;
         document.body.classList.toggle(
           "wallpaper-transparent",
           wm === "overlay" ||
             (wm === "fullscreen" &&
-              document.documentElement.getAttribute("data-fullscreen-layout") === "hero"),
+              html.getAttribute("data-fullscreen-layout") === "hero"),
         );
+      })();
+    </script>
+
+    <!-- 全局毛玻璃：只在配置开启且当前确实存在壁纸时点亮。
+         纯色背景（无壁纸 / 配置关闭）下不存在可模糊对象，此时不下发 data-glass，
+         glass.css 里的所有 backdrop-filter 与半透明卡片规则随之整体失效，
+         移动端不会白付一次全屏重栅格化。
+         与 data-has-wallpaper 的区别：后者是服务端按 hasWallpaper 属性写死的静态值，
+         这里还要跟随运行时壁纸模式切换（banner/fullscreen/overlay/none）重新判定。 -->
+    <script
+      is:inline
+      define:vars={{ glassEnabled }}
+    >
+      (function () {
+        if (!glassEnabled) return;
+        const html = document.documentElement;
+        const syncGlass = () => {
+          const mode = html.getAttribute("data-wallpaper-mode");
+          html.setAttribute(
+            "data-glass",
+            mode && mode !== "none" ? "on" : "off",
+          );
+        };
+        syncGlass();
+        if (window.__fireflyGlassSyncBound) return;
+        window.__fireflyGlassSyncBound = true;
+        // 壁纸模式 / 全屏布局由设置面板在运行时切换，事件名与 setting-utils 保持同一套约定；
+        // 另加属性观察兜底，避免初始化顺序变化导致首次判定用上过期的模式值
+        window.addEventListener("wallpaperModeChange", syncGlass);
+        window.addEventListener("fullscreenLayoutChange", syncGlass);
+        new MutationObserver(syncGlass).observe(html, {
+          attributes: true,
+          attributeFilter: ["data-wallpaper-mode"],
+        });
       })();
     </script>
 
