@@ -99,6 +99,42 @@ const navbarPanelBlur = Math.max(
 	NAVBAR_PANEL_MIN_BLUR,
 );
 
+// 全局毛玻璃（Glass）配置：模糊半径与玻璃面不透明度。
+// 这两个值决定全站玻璃面（卡片 / 按钮 / 面板 / 导航栏）的观感，
+// 数值在这里归一化后注入 :root，CSS 侧只消费 --glass-blur / --glass-surface-alpha，
+// 不在任何组件里硬编码半径，便于统一调整。
+const glassConfig = backgroundWallpaper.glass ?? {};
+const glassEnabled = glassConfig.enable !== false;
+
+// 页面背景纹理（对齐参照站点的 Ambient Texture 系统）：
+// 首帧前把预设与浓度写到 <html>，CSS 的 mask 规则据此选图案。
+// 与参照站点一致：默认关闭（none），访客可在显示设置中开启。
+const TEXTURE_PRESETS = [
+	"none",
+	"starlight",
+	"cyber-dots",
+	"topography",
+	"geometric",
+	"sakura",
+] as const;
+const textureConfig = backgroundWallpaper.texture ?? {};
+const textureEnabled = textureConfig.enable === true;
+const defaultTexturePreset = (() => {
+	const candidate = textureConfig.defaultPreset ?? "none";
+	return (TEXTURE_PRESETS as readonly string[]).includes(candidate)
+		? candidate
+		: "none";
+})();
+const defaultTextureOpacity = Math.min(
+	Math.max(textureConfig.defaultOpacity ?? 0.12, 0.02),
+	0.5,
+);
+const glassBlur = Math.min(Math.max(glassConfig.blur ?? 12, 0), 40);
+const glassSurfaceAlpha = Math.min(
+	Math.max(glassConfig.surfaceAlpha ?? 0.94, 0.3),
+	1,
+);
+
 let pageTitle: string;
 if (title) {
 	pageTitle = `${title} - ${siteConfig.title}`;
@@ -351,6 +387,9 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
           displaySettingsConfig.wallpaperModeSwitchable,
         isFullscreenLayoutSwitchable:
           displaySettingsConfig.fullscreenLayoutSwitchable,
+        defaultTexturePreset,
+        defaultTextureOpacity,
+        textureEnabled,
         darkTheme: expressiveCodeConfig.darkTheme,
         lightTheme: expressiveCodeConfig.lightTheme,
         baseUrl: import.meta.env.BASE_URL,
@@ -425,6 +464,28 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
         resolvedFullscreenLayout,
       );
 
+      // 页面背景纹理：首帧前落位，CSS 的 mask 规则据此选图案
+      // （与参照站点同款：localStorage 覆盖站点默认值，非法值回退）
+      if (textureEnabled) {
+        const storedTexturePreset = localStorage.getItem("texture-preset");
+        const validPresets = ["none", "starlight", "cyber-dots", "topography", "geometric", "sakura"];
+        const texturePreset =
+          storedTexturePreset && validPresets.includes(storedTexturePreset)
+            ? storedTexturePreset
+            : defaultTexturePreset;
+        document.documentElement.dataset.texturePreset = texturePreset;
+        const storedTextureOpacity = localStorage.getItem("texture-opacity");
+        const textureOpacity = storedTextureOpacity
+          ? Number.parseFloat(storedTextureOpacity)
+          : defaultTextureOpacity;
+        if (!Number.isNaN(textureOpacity)) {
+          document.documentElement.style.setProperty(
+            "--texture-opacity",
+            String(textureOpacity),
+          );
+        }
+      }
+
       // 内容定位已由 --content-top 纯 CSS 决定（layout-base.css），无需 --banner-height-extend 变量/计算
 
       // 初始化壁纸模式 - 在页面渲染前同步应用（其余布局由 CSS 属性选择器接管）
@@ -481,6 +542,8 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
         configHue,
         "page-width": `${siteConfig.pageWidth ?? PAGE_WIDTH}rem`,
         "navbar-panel-blur": `${navbarPanelBlur}px`,
+        "glass-blur": `${glassBlur}px`,
+        "glass-surface-alpha": String(glassSurfaceAlpha),
         "banner-height-home": `${BANNER_HEIGHT_HOME}vh`,
         "banner-height-non-home": `max(${BANNER_HEIGHT_NON_HOME}vh, ${BANNER_HEIGHT_NON_HOME_MIN}px)`,
         "banner-height": `${BANNER_HEIGHT}vh`,
@@ -520,16 +583,63 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
     <!-- 首帧前按运行时壁纸模式翻转卡片透明类（布局已由 data-wallpaper-mode 属性规则接管） -->
     <script is:inline>
       (function () {
-        const wm = document.documentElement.getAttribute("data-wallpaper-mode");
+        const html = document.documentElement;
+        const wm = html.getAttribute("data-wallpaper-mode");
         if (!wm) return;
         document.body.classList.toggle(
           "wallpaper-transparent",
           wm === "overlay" ||
             (wm === "fullscreen" &&
-              document.documentElement.getAttribute("data-fullscreen-layout") === "hero"),
+              html.getAttribute("data-fullscreen-layout") === "hero"),
         );
       })();
     </script>
+
+    <!-- 全局毛玻璃：只在配置开启且当前确实存在壁纸时点亮。
+         纯色背景（无壁纸 / 配置关闭）下不存在可模糊对象，此时不下发 data-glass，
+         glass.css 里的所有 backdrop-filter 与半透明卡片规则随之整体失效，
+         移动端不会白付一次全屏重栅格化。
+         与 data-has-wallpaper 的区别：后者是服务端按 hasWallpaper 属性写死的静态值，
+         这里还要跟随运行时壁纸模式切换（banner/fullscreen/overlay/none）重新判定。 -->
+    <script
+      is:inline
+      define:vars={{ glassEnabled }}
+    >
+      (function () {
+        if (!glassEnabled) return;
+        const html = document.documentElement;
+        const syncGlass = () => {
+          const mode = html.getAttribute("data-wallpaper-mode");
+          html.setAttribute(
+            "data-glass",
+            mode && mode !== "none" ? "on" : "off",
+          );
+        };
+        syncGlass();
+        if (window.__fireflyGlassSyncBound) return;
+        window.__fireflyGlassSyncBound = true;
+        // 壁纸模式 / 全屏布局由设置面板在运行时切换，事件名与 setting-utils 保持同一套约定；
+        // 另加属性观察兜底，避免初始化顺序变化导致首次判定用上过期的模式值
+        window.addEventListener("wallpaperModeChange", syncGlass);
+        window.addEventListener("fullscreenLayoutChange", syncGlass);
+        new MutationObserver(syncGlass).observe(html, {
+          attributes: true,
+          attributeFilter: ["data-wallpaper-mode"],
+        });
+      })();
+    </script>
+
+    <!-- 页面背景纹理画布：纯 CSS + 内联 SVG Data URI 渲染，零外部请求。
+         预设与浓度由首帧内联脚本写到 <html> 上，本元素只作为绘制载体
+         （图案与着色在 src/styles/textures.css 中按 data-texture-preset 选择）。
+         未启用纹理（textureEnabled=false）时不输出任何 DOM，零额外负担。 -->
+    {textureEnabled && (
+      <div
+        id="m3e-texture-canvas"
+        class="fixed inset-0 pointer-events-none -z-20 transition-opacity duration-500"
+        aria-hidden="true"
+      />
+    )}
 
     <div id="progress-bar"></div>
 
@@ -584,5 +694,17 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
 
 <script>
   import { initLayout } from "@/utils/layout-init";
+  import { enhancePaletteWithHct } from "@/utils/color-utils";
+  import { siteConfig } from "@/config";
   initLayout();
+
+  // HCT 动态配色：首帧之后再补齐完整调色板。
+  // 首帧仍用 --hue + oklch 公式（快、无闪烁，见 Layout 头部 inline 脚本的注释），
+  // 这里异步写入 --mc-* 后由 CSS 自动接管；失败/关闭时静默保持原配色。
+  if (siteConfig.themeColor?.dynamicPalette !== false) {
+    void enhancePaletteWithHct(siteConfig.themeColor.hue);
+    window.addEventListener("theme-change", () => {
+      void enhancePaletteWithHct(siteConfig.themeColor.hue);
+    });
+  }
 </script>

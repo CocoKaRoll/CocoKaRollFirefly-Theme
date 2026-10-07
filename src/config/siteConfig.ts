@@ -70,6 +70,10 @@ export const siteConfig: SiteConfig = {
 	themeColor: {
 		// 主题色的默认色相，范围从 0 到 360。例如：红色：0，青色：200，蓝绿色：250，粉色：345
 		hue: 352,
+		// HCT 动态配色增强（Material Color Utilities）。
+		// true：首帧后异步生成 M3 完整调色板（表面层级 / 前景色跟随种子色精确派生）
+		// false：完全不加载该模块，保持原有「hue + oklch 公式」配色
+		dynamicPalette: true,
 		// 默认模式："light" 亮色，"dark" 暗色，"system" 跟随系统
 		defaultMode: "system",
 	},

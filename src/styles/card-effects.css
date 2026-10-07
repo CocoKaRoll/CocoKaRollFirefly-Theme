@@ -1,0 +1,94 @@
+/**
+ * 卡片封面效果（Card Cover Effects）
+ * ============================================================
+ * 逐条还原自参照站点 https://blog.fqzlr.top/ 的实测下发样式。
+ *
+ * 参照站点（Svelte/Astro 组件，类名 .m3-blog-postcard__cover）：
+ *   .m3-blog-postcard__cover > picture > img {
+ *     mask-image: linear-gradient(270deg, #000 0% 65%, #000000b8 75%, #00000059 83%, #0000 100%);
+ *     filter: brightness(.92);
+ *     transition: transform …, filter …;
+ *   }
+ *   :hover … img { transform: scale(1.05); filter: brightness(1); }
+ *
+ * ── 移植到 Firefly 的对应关系 ───────────────────────────────
+ *   Firefly 的卡片封面是 <a class="post-card-image …"> 容器，
+ *   内部图片由 CoverImage 组件渲染（结构上等价于参照站点的
+ *   .m3-blog-postcard__cover > picture > img）。
+ *   因此把 mask / brightness 施加到 .post-card-image 内的 img 上。
+ *
+ * ── 刻意不动的部分 ──────────────────────────────────────────
+ *   Firefly 已有自己的 hover 机制（group-hover:scale-110 +
+ *   group-hover:bg-black/30 遮罩），本文件**不覆盖** transform，
+ *   避免两套缩放机制互相打架；只补齐参照站点有、而 Firefly 缺的
+ *   「渐隐 mask」与「brightness 压暗/提亮」。
+ * ============================================================
+ */
+
+/* 封面渐隐 + 压暗：让图片朝卡片边缘柔和淡出，并略微压暗以提升文字对比 */
+.post-card-image img {
+	-webkit-mask-image: linear-gradient(
+		270deg,
+		#000 0% 65%,
+		#000000b8 75%,
+		#00000059 83%,
+		#0000 100%
+	);
+	mask-image: linear-gradient(
+		270deg,
+		#000 0% 65%,
+		#000000b8 75%,
+		#00000059 83%,
+		#0000 100%
+	);
+	filter: brightness(0.92);
+	/* 与参照站点一致：medium 时长 + emphasized-decelerate 曲线 */
+	transition:
+		transform var(--m3e-duration-medium, 0.25s) var(--m3e-easing-emphasized-decelerate, ease),
+		filter var(--m3e-duration-medium, 0.25s) var(--m3e-easing-emphasized-decelerate, ease);
+}
+
+/* hover / 聚焦：恢复原亮度（与参照站点一致） */
+.post-card-image:hover img,
+.post-card-image:focus-visible img,
+.post-card-image:focus-within img {
+	filter: brightness(1);
+}
+
+/* 网格模式下封面是「贴顶通栏」布局，左右渐隐会显得突兀，改为不渐隐也不压暗。
+   （参照站点在 grid 布局下同样显式 mask-image:none; filter:none；
+   .grid-mode 挂在祖先元素上，祖先类名在全局样式里可直接使用。） */
+.grid-mode .post-card-image img {
+	-webkit-mask-image: none;
+	mask-image: none;
+	filter: none;
+}
+
+/* 封面在左（Firefly 的 cover-left 布局）：渐隐方向镜像 */
+.list-mode.cover-left .post-card-image img {
+	-webkit-mask-image: linear-gradient(
+		90deg,
+		#000 0% 65%,
+		#000000b8 75%,
+		#00000059 83%,
+		#0000 100%
+	);
+	mask-image: linear-gradient(
+		90deg,
+		#000 0% 65%,
+		#000000b8 75%,
+		#00000059 83%,
+		#0000 100%
+	);
+}
+
+/* Reduced Motion：只保留状态结果，去掉过渡 */
+@media (prefers-reduced-motion: reduce) {
+	.post-card-image img {
+		transition: none;
+	}
+}
+
+html.motion-reduced .post-card-image img {
+	transition: none;
+}

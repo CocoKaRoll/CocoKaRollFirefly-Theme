@@ -74,6 +74,10 @@ const codeFontFamily = codeFontVar
   set:html={`
   :root {
     --font-code: ${codeFontFamily};
+    /* --font-body 是完整正文字体栈（西文 + CJK + 系统保底），
+       供 Tailwind @theme 的 --font-sans 与 --m3e-type-* 排版令牌消费，
+       使「换字体只改 fontConfig.ts」这一契约成立 */
+    --font-body: ${bodyFontFamily};
     ${bannerTitleFontVar ? `--font-banner-title: var(${bannerTitleFontVar}, inherit);` : ""}
     ${bannerSubtitleFontVar ? `--font-banner-subtitle: var(${bannerSubtitleFontVar}, inherit);` : ""}
     ${navbarTitleFontVar ? `--font-navbar-title: var(${navbarTitleFontVar}, inherit);` : ""}

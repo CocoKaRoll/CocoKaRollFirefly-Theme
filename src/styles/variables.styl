@@ -3,12 +3,17 @@
   --radius-large: 1rem
   --content-delay: 150ms
 
-/* ===== 主题相关变量 ===== */
+/* ===== 主题相关变量 =====
+   取值统一来自 M3 令牌层（src/styles/m3-tokens.css）。
+   本文件保留 Firefly 既有变量名，但改为「M3 令牌的别名」，
+   因此后续只需调整令牌即可全站生效，而所有引用旧名的组件无需改动。 */
 :root
-  --primary: oklch(0.70 0.14 var(--hue))
-  --page-bg: oklch(0.95 0.01 var(--hue))
-  --card-bg: white
-  --card-bg-transparent: unquote("rgb(255 255 255 / var(--card-transparent-opacity, 0.6))")
+  /* --primary 不在此定义：交由 m3-tokens.css 的语义色层
+     （var(--mc-primary, oklch(.42 .16 var(--hue)))，与参照站点一致） */
+  --page-bg: var(--surface-container-low)
+  --card-bg: var(--surface-container-lowest)
+  --card-bg-transparent: unquote("color-mix(in srgb, var(--surface-container-lowest) calc(var(--card-transparent-opacity, 0.6) * 100%), transparent)")
+  --float-panel-bg: var(--float-panel-surface)
   
   --btn-content: oklch(0.55 0.12 var(--hue))
   --btn-regular-bg: oklch(0.95 0.025 var(--hue))
@@ -24,18 +29,25 @@
   --enter-btn-bg: var(--btn-regular-bg)
   --enter-btn-bg-hover: var(--btn-regular-bg-hover)
   --enter-btn-bg-active: var(--btn-regular-bg-active)
-  
-  --deep-text: oklch(0.25 0.02 var(--hue))
+
+  /* ===== 毛玻璃（Glass）令牌 - 亮色 =====
+     全局玻璃面的固定色（边缘 / 交互环 / 内高光）。
+     模糊半径与面不透明度在 src/styles/glass.css，由 backgroundWallpaper.glass 注入 */
+  --glass-border: rgba(0, 0, 0, 0.06)
+  --glass-ring: rgba(0, 0, 0, 0.55)
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18)
+
+  --deep-text: var(--on-surface)
   --title-active: oklch(0.6 0.1 var(--hue))
   
-  --line-divider: rgba(0, 0, 0, 0.08)
-  --line-color: rgba(0, 0, 0, 0.1)
-  --meta-divider: rgba(0, 0, 0, 0.2)
-  --content-meta: rgba(0, 0, 0, 0.7)
+  --line-divider: var(--outline-variant)
+  --line-color: var(--outline)
+  --meta-divider: var(--meta-divider-token)
+  --content-meta: var(--on-surface-variant)
   
   --inline-code-bg: var(--btn-regular-bg)
   --inline-code-color: var(--btn-content)
-  --muted: oklch(0.93 0.015 var(--hue))
+  --muted: var(--muted-surface)
   --selection-bg: oklch(0.90 0.05 var(--hue))
   --codeblock-bg: oklch(0.17 0.015 var(--hue))
   --codeblock-topbar-bg: oklch(0.3 0.02 var(--hue))
@@ -46,7 +58,16 @@
   --link-hover: oklch(0.95 0.025 var(--hue))
   --link-active: oklch(0.90 0.05 var(--hue))
   
-  --float-panel-bg: white
+  --float-panel-bg: var(--float-panel-surface)
+  
+  /* Firefly 旧圆角名 → M3 形状令牌（--radius-large 由组件大量引用，保持等价） */
+  --radius-sm: var(--shape-corner-xs)
+  --radius-md: 6px
+  --radius-lg: var(--shape-corner-s)
+  --radius-xl: var(--shape-corner-m)
+  --radius-2xl: var(--shape-corner-l)
+  --radius-3xl: 24px
+  --radius-full: var(--shape-corner-full)
   
   --scrollbar-bg-light: rgba(0, 0, 0, 0.4)
   --scrollbar-bg-hover-light: rgba(0, 0, 0, 0.5)
@@ -89,14 +110,19 @@
 
 /* 暗色主题变量 */
 :root.dark
-  --primary: oklch(0.75 0.14 var(--hue))
-  --page-bg: oklch(0.16 0.014 var(--hue))
-  --card-bg: oklch(0.23 0.015 var(--hue))
-  --card-bg-transparent: unquote("rgb(23 23 23 / var(--card-transparent-opacity, 0.6))")
+  /* --primary 同样交给令牌层（参照站点深色为 oklch(.8 .14 var(--hue))） */
+  --page-bg: var(--surface)
+  --card-bg: var(--surface-container-lowest)
+  --card-bg-transparent: unquote("color-mix(in srgb, var(--surface-container-lowest) calc(var(--card-transparent-opacity, 0.6) * 100%), transparent)")
 
   /* 导航栏玻璃高光与发丝线（暗色） */
   --navbar-glass-highlight: rgba(255, 255, 255, 0.06)
   --navbar-glass-hairline: rgba(255, 255, 255, 0.10)
+
+  /* ===== 毛玻璃（Glass）令牌 - 暗色 ===== */
+  --glass-border: rgba(255, 255, 255, 0.10)
+  --glass-ring: rgba(255, 255, 255, 0.45)
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06)
 
   --btn-content: oklch(0.75 0.1 var(--hue))
   --btn-regular-bg: oklch(0.33 0.035 var(--hue))
@@ -109,12 +135,12 @@
   --btn-card-bg-hover: oklch(0.3 0.03 var(--hue))
   --btn-card-bg-active: oklch(0.35 0.035 var(--hue))
   
-  --line-divider: rgba(255, 255, 255, 0.08)
-  --line-color: rgba(255, 255, 255, 0.1)
-  --meta-divider: rgba(255, 255, 255, 0.2)
-  --content-meta: rgba(255, 255, 255, 0.6)
+  --line-divider: var(--outline-variant)
+  --line-color: var(--outline)
+  --meta-divider: var(--meta-divider-token)
+  --content-meta: var(--on-surface-variant)
   
-  --muted: oklch(0.25 0.015 var(--hue))
+  --muted: var(--muted-surface)
   --selection-bg: oklch(0.40 0.08 var(--hue))
   --codeblock-bg: oklch(0.17 0.015 var(--hue))
   --codeblock-topbar-bg: oklch(0.12 0.015 var(--hue))
@@ -125,7 +151,7 @@
   --link-hover: oklch(0.40 0.08 var(--hue))
   --link-active: oklch(0.35 0.07 var(--hue))
   
-  --float-panel-bg: oklch(0.19 0.015 var(--hue))
+  --float-panel-bg: var(--float-panel-surface)
   
   --scrollbar-bg: var(--scrollbar-bg-dark)
   --scrollbar-bg-hover: var(--scrollbar-bg-hover-dark)

@@ -1,0 +1,257 @@
+/**
+ * Material 3 Expressive 设计令牌层（M3E Token Layer）
+ * ============================================================
+ * 令牌取值**逐字符对齐参照站点** https://blog.fqzlr.top/ 的实测编译产物
+ * （该站点与 Shirone / Firefly 同源，其令牌表可由下发 CSS 完整还原）。
+ *
+ * ── 历史与修正 ─────────────────────────────────────────────
+ * 本文件初版（阶段 1）为追求「相对 Firefly 零视觉回归」，把表面层级取值对齐了
+ * Firefly 的旧值。但参照站点的真实取值是另一套（近白带色相、更深的墨色前景）。
+ * 两者的差异足以改变整站「气色」，因此本版**改为直接采用参照站点的真实值**：
+ *
+ *   令牌                          参照站点（浅色）              参照站点（深色）
+ *   --surface                     oklch(.96 .012)              oklch(.15 .013)
+ *   --surface-dim                 oklch(.93 .014)              oklch(.12 .011)
+ *   --surface-bright              oklch(.98 .008)              oklch(.20 .015)
+ *   --surface-container-lowest    oklch(.985 .006)             oklch(.12 .011)
+ *   --surface-container-low       oklch(.965 .01)              oklch(.19 .014)
+ *   --surface-container           oklch(.94 .015)              oklch(.23 .016)
+ *   --surface-container-high      oklch(.92 .02)               oklch(.28 .018)
+ *   --surface-container-highest   oklch(.90 .025)              oklch(.33 .02)
+ *   --surface-variant             oklch(.90 .02)               oklch(.32 .02)
+ *   --inverse-surface             oklch(.16 .02)               oklch(.92 .015)
+ *   --on-surface                  oklch(.16 .02)               oklch(.92 .015)
+ *   --on-surface-variant          oklch(.34 .03)               oklch(.76 .03)
+ *   --outline                     oklch(.45 .03)               oklch(.62 .03)
+ *   --outline-variant             oklch(.76 .02)               oklch(.42 .02)
+ *
+ * 注意 `--on-surface` 浅色是 oklch(.16 .02)（很深的带色相墨色），
+ * 而不是之前误用的 oklch(.25 .02) —— 这正是此前全站文字「发灰」的主因。
+ *
+ * ── 与 HCT 引擎的关系 ──────────────────────────────────────
+ * 所有消费点都写成 `var(--mc-x, <oklch 回退>)`，与参照站点**结构一致**：
+ * 首帧用 oklch 公式（快、无闪烁），HCT 引擎（src/utils/color-utils.ts）
+ * 就绪后写入 `--mc-*` 接管。未启用/失败时自动回退，观感仍与参照站点同款。
+ * ============================================================
+ */
+
+/* ============================================================
+ * 1. 表面层级（Surface / Tonal Elevation）
+ * ============================================================ */
+:root {
+	--surface: var(--mc-surface, oklch(0.96 0.012 var(--hue)));
+	--surface-dim: var(--mc-surface-dim, oklch(0.93 0.014 var(--hue)));
+	--surface-bright: var(--mc-surface-bright, oklch(0.98 0.008 var(--hue)));
+	--surface-container-lowest: var(--mc-surface-container-lowest, oklch(0.985 0.006 var(--hue)));
+	--surface-container-low: var(--mc-surface-container-low, oklch(0.965 0.01 var(--hue)));
+	--surface-container: var(--mc-surface-container, oklch(0.94 0.015 var(--hue)));
+	--surface-container-high: var(--mc-surface-container-high, oklch(0.92 0.02 var(--hue)));
+	--surface-container-highest: var(--mc-surface-container-highest, oklch(0.9 0.025 var(--hue)));
+	--surface-variant: var(--mc-surface-variant, oklch(0.9 0.02 var(--hue)));
+	--inverse-surface: var(--mc-inverse-surface, oklch(0.16 0.02 var(--hue)));
+	/* Firefly 专属别名：浮层与次级填充。参照站点没有这两个名字，
+	   按其表面映射关系落到对应的 M3 层（浅色浮层=最亮层的下一档，深色=container） */
+	--float-panel-surface: var(--mc-surface-container-low, oklch(0.965 0.01 var(--hue)));
+	--muted-surface: var(--mc-surface-container, oklch(0.94 0.015 var(--hue)));
+}
+
+:root.dark {
+	--surface: var(--mc-surface, oklch(0.15 0.013 var(--hue)));
+	--surface-dim: var(--mc-surface-dim, oklch(0.12 0.011 var(--hue)));
+	--surface-bright: var(--mc-surface-bright, oklch(0.2 0.015 var(--hue)));
+	--surface-container-lowest: var(--mc-surface-container-lowest, oklch(0.12 0.011 var(--hue)));
+	--surface-container-low: var(--mc-surface-container-low, oklch(0.19 0.014 var(--hue)));
+	--surface-container: var(--mc-surface-container, oklch(0.23 0.016 var(--hue)));
+	--surface-container-high: var(--mc-surface-container-high, oklch(0.28 0.018 var(--hue)));
+	--surface-container-highest: var(--mc-surface-container-highest, oklch(0.33 0.02 var(--hue)));
+	--surface-variant: var(--mc-surface-variant, oklch(0.32 0.02 var(--hue)));
+	--inverse-surface: var(--mc-inverse-surface, oklch(0.92 0.015 var(--hue)));
+	--float-panel-surface: var(--mc-surface-container, oklch(0.23 0.016 var(--hue)));
+	--muted-surface: var(--mc-surface-container-high, oklch(0.28 0.018 var(--hue)));
+}
+
+/* ============================================================
+ * 2. 前景色（On-surface roles）
+ * ============================================================ */
+:root {
+	--on-surface: var(--mc-on-surface, oklch(0.16 0.02 var(--hue)));
+	--on-surface-variant: var(--mc-on-surface-variant, oklch(0.34 0.03 var(--hue)));
+	--inverse-on-surface: var(--mc-inverse-on-surface, oklch(0.96 0.012 var(--hue)));
+}
+
+:root.dark {
+	--on-surface: var(--mc-on-surface, oklch(0.92 0.015 var(--hue)));
+	--on-surface-variant: var(--mc-on-surface-variant, oklch(0.76 0.03 var(--hue)));
+	--inverse-on-surface: var(--mc-inverse-on-surface, oklch(0.16 0.02 var(--hue)));
+}
+
+/* ============================================================
+ * 3. 轮廓（Outline）
+ * ============================================================
+ * 参照站点用的是**实色** oklch 轮廓（不是半透明黑/白），沿用之。
+ */
+:root {
+	--outline: var(--mc-outline, oklch(0.45 0.03 var(--hue)));
+	--outline-variant: var(--mc-outline-variant, oklch(0.76 0.02 var(--hue)));
+	--meta-divider-token: var(--mc-outline-variant, oklch(0.76 0.02 var(--hue)));
+}
+
+:root.dark {
+	--outline: var(--mc-outline, oklch(0.62 0.03 var(--hue)));
+	--outline-variant: var(--mc-outline-variant, oklch(0.42 0.02 var(--hue)));
+	--meta-divider-token: var(--mc-outline-variant, oklch(0.42 0.02 var(--hue)));
+}
+
+/* ============================================================
+ * 4. 语义色（Primary / Secondary / Tertiary / Error）
+ * ============================================================
+ * 参照站点的 secondary 色相 +65、tertiary 色相 -100，error 固定 27°。
+ */
+:root {
+	--primary: var(--mc-primary, oklch(0.42 0.16 var(--hue)));
+	--on-primary: var(--mc-on-primary, oklch(0.99 0.02 var(--hue)));
+	--primary-container: var(--mc-primary-container, oklch(0.9 0.06 var(--hue)));
+	--on-primary-container: var(--mc-on-primary-container, oklch(0.24 0.09 var(--hue)));
+	--inverse-primary: var(--mc-inverse-primary, oklch(0.9 0.13 var(--hue)));
+	/* 表面着色：M3 用 surface-tint 表示「当前配色的主色在该表面上的着色基准」。
+	   参照站点同样定义为 var(--primary)，不引入新色值。 */
+	--surface-tint: var(--mc-surface-tint, var(--primary));
+
+	--secondary: var(--mc-secondary, oklch(0.52 0.13 calc(var(--hue) + 65)));
+	--on-secondary: var(--mc-on-secondary, oklch(0.99 0.02 var(--hue)));
+	--secondary-container: var(--mc-secondary-container, oklch(0.9 0.05 calc(var(--hue) + 65)));
+	--on-secondary-container: var(--mc-on-secondary-container, oklch(0.26 0.08 calc(var(--hue) + 65)));
+
+	--tertiary: var(--mc-tertiary, oklch(0.5 0.12 calc(var(--hue) - 100)));
+	--on-tertiary: var(--mc-on-tertiary, oklch(0.99 0.02 var(--hue)));
+	--tertiary-container: var(--mc-tertiary-container, oklch(0.9 0.05 calc(var(--hue) - 100)));
+	--on-tertiary-container: var(--mc-on-tertiary-container, oklch(0.26 0.08 calc(var(--hue) - 100)));
+
+	--error: var(--mc-error, oklch(0.57 0.21 27));
+	--on-error: var(--mc-on-error, oklch(0.99 0.01 27));
+	--error-container: var(--mc-error-container, oklch(0.93 0.06 27));
+	--on-error-container: var(--mc-on-error-container, oklch(0.36 0.12 27));
+}
+
+:root.dark {
+	--primary: var(--mc-primary, oklch(0.8 0.14 var(--hue)));
+	--on-primary: var(--mc-on-primary, oklch(0.2 0.04 var(--hue)));
+	--primary-container: var(--mc-primary-container, oklch(0.36 0.1 var(--hue)));
+	--on-primary-container: var(--mc-on-primary-container, oklch(0.9 0.05 var(--hue)));
+	--inverse-primary: var(--mc-inverse-primary, oklch(0.42 0.16 var(--hue)));
+
+	--secondary: var(--mc-secondary, oklch(0.82 0.11 calc(var(--hue) + 65)));
+	--on-secondary: var(--mc-on-secondary, oklch(0.2 0.04 calc(var(--hue) + 65)));
+	--secondary-container: var(--mc-secondary-container, oklch(0.37 0.08 calc(var(--hue) + 65)));
+	--on-secondary-container: var(--mc-on-secondary-container, oklch(0.91 0.05 calc(var(--hue) + 65)));
+
+	--tertiary: var(--mc-tertiary, oklch(0.82 0.1 calc(var(--hue) - 100)));
+	--on-tertiary: var(--mc-on-tertiary, oklch(0.2 0.04 calc(var(--hue) - 100)));
+	--tertiary-container: var(--mc-tertiary-container, oklch(0.37 0.08 calc(var(--hue) - 100)));
+	--on-tertiary-container: var(--mc-on-tertiary-container, oklch(0.91 0.05 calc(var(--hue) - 100)));
+
+	--error: var(--mc-error, oklch(0.82 0.15 27));
+	--on-error: var(--mc-on-error, oklch(0.28 0.11 27));
+	--error-container: var(--mc-error-container, oklch(0.45 0.15 27));
+	--on-error-container: var(--mc-on-error-container, oklch(0.95 0.05 27));
+}
+
+/* ============================================================
+ * 5. 形状尺度（Shape Corner）
+ * ============================================================ */
+:root {
+	--shape-corner-xs: 4px;
+	--shape-corner-s: 8px;
+	--shape-corner-m: 12px;
+	--shape-corner-l: 16px;
+	--shape-corner-xl: 28px;
+	--shape-corner-full: 999px;
+}
+
+/* ============================================================
+ * 6. 高度（Elevation）
+ * ============================================================ */
+:root {
+	--m3e-elevation-0: none;
+	--m3e-elevation-1: 0 1px 2px color-mix(in srgb, var(--mc-shadow, #000) 6%, transparent);
+	--m3e-elevation-2:
+		0 1px 2px color-mix(in srgb, var(--mc-shadow, #000) 8%, transparent),
+		0 2px 6px 1px color-mix(in srgb, var(--mc-shadow, #000) 6%, transparent);
+	--m3e-elevation-3:
+		0 2px 4px color-mix(in srgb, var(--mc-shadow, #000) 10%, transparent),
+		0 4px 12px 2px color-mix(in srgb, var(--mc-shadow, #000) 8%, transparent);
+	--m3e-elevation-4:
+		0 4px 8px color-mix(in srgb, var(--mc-shadow, #000) 12%, transparent),
+		0 8px 20px 4px color-mix(in srgb, var(--mc-shadow, #000) 10%, transparent);
+	--m3e-elevation-5:
+		0 6px 12px color-mix(in srgb, var(--mc-shadow, #000) 14%, transparent),
+		0 12px 28px 6px color-mix(in srgb, var(--mc-shadow, #000) 12%, transparent);
+}
+
+/* ============================================================
+ * 7. 动效（Motion）
+ * ============================================================ */
+:root {
+	--m3e-duration-short: 0.15s;
+	--m3e-duration-medium: 0.25s;
+	--m3e-duration-long: 0.4s;
+	--m3e-duration-ambient-short: 7s;
+	--m3e-duration-ambient-medium: 10s;
+	--m3e-duration-ambient-long: 13s;
+	--m3e-duration-ambient-extra-long: 18s;
+
+	--m3e-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+	--m3e-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+	--m3e-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+	--m3e-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+/* ============================================================
+ * 8. 间距与密度（Spacing / Density）
+ * ============================================================ */
+:root {
+	--m3e-space-1: 4px;
+	--m3e-space-2: 8px;
+	--m3e-space-3: 12px;
+	--m3e-space-4: 16px;
+	--m3e-space-5: 20px;
+	--m3e-space-6: 24px;
+	--m3e-space-8: 32px;
+	--m3e-space-10: 40px;
+	--m3e-density: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	:root {
+		--m3e-density: -1;
+	}
+}
+
+/* ============================================================
+ * 9. 排版阶梯（Type Scale）
+ * ============================================================
+ * 字体族来自字体系统（FontSetup.astro 注入 --font-body / --font-code）。
+ */
+:root {
+	--m3e-type-label-small: 500 0.6875rem/1rem var(--font-body, sans-serif);
+	--m3e-type-label-medium: 500 0.75rem/1rem var(--font-body, sans-serif);
+	--m3e-type-label-large: 500 0.875rem/1.25rem var(--font-body, sans-serif);
+	--m3e-type-body-small: 400 0.75rem/1rem var(--font-body, sans-serif);
+	--m3e-type-body-medium: 400 0.875rem/1.25rem var(--font-body, sans-serif);
+	--m3e-type-body-large: 400 1rem/1.5rem var(--font-body, sans-serif);
+	--m3e-type-title-small: 500 0.875rem/1.25rem var(--font-body, sans-serif);
+	--m3e-type-title-medium: 500 1rem/1.5rem var(--font-body, sans-serif);
+	--m3e-type-title-large: 400 1.375rem/1.75rem var(--font-body, sans-serif);
+	--m3e-type-headline-small: 400 1.5rem/2rem var(--font-body, sans-serif);
+	--m3e-type-headline-medium: 400 1.75rem/2.25rem var(--font-body, sans-serif);
+	--m3e-type-code: 400 0.875rem/1.25rem var(--font-code, monospace);
+}
+
+/* ============================================================
+ * 10. 别名说明
+ * ============================================================
+ * Firefly 既有变量（--page-bg / --card-bg / --line-divider / --deep-text …）
+ * 的别名**不放在本文件**，而是写进 `src/styles/variables.styl`：
+ * Layout.astro 里 variables.styl 是在 main.css **之后**导入的，
+ * 写在这里会被原字面量覆盖而失效。
+ */
