@@ -3,6 +3,47 @@ import type { BackgroundWallpaperConfig } from "@/types/backgroundWallpaper";
 export const backgroundWallpaper: BackgroundWallpaperConfig = {
 	// 壁纸模式："banner" 横幅壁纸，"fullscreen" 全屏壁纸，"overlay" 覆盖透明，"none" 纯色背景无壁纸
 	mode: "banner",
+	/**
+	 * 全局毛玻璃（Frosted Glass）
+	 * ------------------------------------------------------------
+	 * 把导航栏 / 浮层面板 / 卡片 / 按钮统一成一套玻璃观感，
+	 * 由 :root 上的 --glass-blur 与 --glass-surface-alpha 驱动（见 src/styles/glass.css）。
+	 * 只在「当前存在壁纸」时生效：纯色背景（mode: "none"）下不存在可模糊对象，
+	 * 会自动整站退回不透明卡片，不做无谓的 backdrop-filter 开销。
+	 *
+	 * 想整体调观感只改这三个数：
+	 *   blur        模糊半径，越大越糊。12 是「轻量磨砂」，20 以上偏重，0 即关闭模糊
+	 *   surfaceAlpha 玻璃面不透明度，越接近 1 越实、越透明越能看到壁纸
+	 *   enable      false 时整站关闭毛玻璃（性能优先 / 视觉回退用）
+	 */
+	glass: {
+		enable: true,
+		blur: 12,
+		surfaceAlpha: 0.94,
+	},
+	/**
+	 * 页面背景纹理（Ambient Texture）
+	 * ------------------------------------------------------------
+	 * 纯 CSS + 内联矢量 SVG Data URI 渲染，零外部网络请求。
+	 * 图案着色引用主题令牌（--primary / --secondary / --tertiary），
+	 * 因此 HCT 动态配色生效后纹理会自动跟着种子色变化。
+	 *
+	 * 5 个预设：
+	 *   starlight   二次元星芒与呼吸微光（默认，对齐参照站点）
+	 *   cyber-dots  极客点阵与准星
+	 *   topography  流光等高线波纹
+	 *   geometric   M3E 几何晶体与折纸
+	 *   sakura      落樱微瓣
+	 *   none        纯色无纹理（完全脱离渲染树，0 绘制开销）
+	 *
+	 * enable: false 时不输出画布 DOM、不注入样式，零额外负担。
+	 * 访客可在「显示设置」中选择预设与浓度（存 localStorage）。
+	 */
+	texture: {
+		enable: true,
+		defaultPreset: "starlight",
+		defaultOpacity: 0.12,
+	},
 	// 是否启用背景视频播放，配置后将在导航栏显示视频播放按钮
 	playerEnable: true,
 	/**

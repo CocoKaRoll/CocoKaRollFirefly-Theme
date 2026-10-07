@@ -1,0 +1,278 @@
+/**
+ * M3 进度指示器（Material 3 Progress Indicator）
+ * ============================================================
+ * 逐条还原自参照站点 https://blog.fqzlr.top/ 的实测下发样式
+ * （ProgressIndicator.DcFzDDnR.css，由 Svelte 组件编译而来，可完整提取）。
+ *
+ * ── 技术要点 ────────────────────────────────────────────────
+ * 参照站点的做法相当讲究：
+ *   1. 用 `@property` 把 `--pi-h1/-t1/-h2/-t2` 声明为 `<number>`，
+ *      使它们可以在 @keyframes 里**做类型化数值插值**（默认的自定义属性
+ *      是离散的，无法参与关键帧插值）——这是整个效果的核心技法。
+ *   2. 线性不确定态用两条线（line--1 / line--2），各自用「起点 + 宽度」
+ *      两组独立关键帧组合出 M3 规范的往复扫描；周期 1.75s。
+ *   3. 进度位置用 calc(var(--pi-t1) * 100% + 2px) 这类表达式驱动，
+ *      因此改一个数值即可整体平移。
+ *
+ * ── 与 Firefly 现有路由进度条的关系（重要） ─────────────────
+ * Firefly 现在是 `<div id="progress-bar">` + 由 swup-transitions.ts
+ * **逐帧设置 width** 的实现；而 M3 这套是**纯 CSS 动画**。
+ * 两者机制不同，直接替换会与现有 JS 冲突，因此本文件先作为
+ * 「已就绪的独立实现」落地：提供类名与关键帧，不接管任何现有元素。
+ * 集成方案见文件末尾注释。
+ * ============================================================
+ */
+
+/* ============================================================
+ * 1. 类型化自定义属性（核心技法）
+ * ============================================================
+ * !!! 注意：Firefly 全站已有 69 个 @property，但 `--pi-*` 这 5 个是
+ * 参照站点独有的。若将来集成到 Firefly 现有进度条上，需一并带上本段，
+ * 否则关键帧里的数值插值会失效（自定义属性默认不参与插值）。
+ */
+@property --pi-h1 {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+@property --pi-t1 {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+@property --pi-h2 {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+@property --pi-t2 {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+@property --pi-sweep {
+	syntax: "<number>";
+	inherits: false;
+	initial-value: 0.1;
+}
+
+/* ============================================================
+ * 2. 线性进度条基础
+ * ============================================================ */
+.m3-progress--linear {
+	width: 100%;
+	height: 4px;
+}
+
+.m3-progress--linear .m3-progress__track {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border-radius: var(--shape-corner-full);
+}
+
+/* 已知进度：已填充段 */
+.m3-progress--linear .m3-progress__active {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: calc(var(--pi-progress, 0) * 1%);
+	border-radius: var(--shape-corner-full);
+	background: var(--pi-color);
+	transition: width var(--m3e-duration-medium) var(--m3e-easing-emphasized-decelerate);
+}
+
+/* 剩余轨道 */
+.m3-progress--linear .m3-progress__track-fill {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	left: calc(var(--pi-progress, 0) * 1% + var(--pi-gap, 4px));
+	border-radius: var(--shape-corner-full);
+	background: var(--pi-track);
+}
+
+/* 进度端点圆点 */
+.m3-progress--linear .m3-progress__stop {
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 4px;
+	height: 4px;
+	border-radius: var(--shape-corner-full);
+	background: var(--pi-color);
+	left: calc(var(--pi-progress, 0) * 1% + var(--pi-gap, 4px) / 2);
+	transition: left var(--m3e-duration-medium) var(--m3e-easing-emphasized-decelerate);
+}
+
+/* 方角变体 */
+.m3-progress--linear.m3-progress--butt .m3-progress__track,
+.m3-progress--linear.m3-progress--butt .m3-progress__active,
+.m3-progress--linear.m3-progress--butt .m3-progress__track-fill {
+	border-radius: 0;
+}
+
+/* ============================================================
+ * 3. 线性不确定态（双线往复扫描）—— 路由加载条用的就是这一套
+ * ============================================================ */
+.m3-progress--linear.m3-progress--indeterminate .m3-progress__track {
+	background: var(--pi-track);
+}
+
+.m3-progress--linear.m3-progress--indeterminate .m3-progress__line {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	border-radius: var(--shape-corner-full);
+	background: var(--pi-color);
+}
+
+/* 第一条线：起点 t1 + 宽度 h1 两组关键帧叠加 */
+.m3-progress--linear.m3-progress--indeterminate .m3-progress__line--1 {
+	left: calc(var(--pi-t1) * 100% + 2px);
+	width: calc((var(--pi-h1) - var(--pi-t1)) * 100% - 4px);
+	animation:
+		m3-progress-pi-h1 1.75s linear infinite,
+		m3-progress-pi-t1 1.75s linear infinite;
+}
+
+/* 第二条线：错开相位，形成 M3 规范的「跟随」感 */
+.m3-progress--linear.m3-progress--indeterminate .m3-progress__line--2 {
+	left: calc(var(--pi-t2) * 100% + 2px);
+	width: calc((var(--pi-h2) - var(--pi-t2)) * 100% - 4px);
+	animation:
+		m3-progress-pi-h2 1.75s linear infinite,
+		m3-progress-pi-t2 1.75s linear infinite;
+}
+
+/* 波浪变体：在双线基础上再叠一层 mask 平移（音乐播放器进度条用的） */
+.m3-progress--linear.m3-progress--indeterminate .m3-progress__line--wave {
+	height: 100%;
+	border-radius: var(--shape-corner-full);
+	background: none;
+	background-color: var(--pi-color);
+	left: calc(var(--pi-t1) * 100% + 2px);
+	width: calc((var(--pi-h1) - var(--pi-t1)) * 100% - 4px);
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='8'%3E%3Cpath d='M0 1 Q 10 7, 20 1 T 40 1 L 40 7 Q 30 1, 20 7 T 0 7 Z' fill='black'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='8'%3E%3Cpath d='M0 1 Q 10 7, 20 1 T 40 1 L 40 7 Q 30 1, 20 7 T 0 7 Z' fill='black'/%3E%3C/svg%3E");
+	-webkit-mask-size: 40px 8px;
+	mask-size: 40px 8px;
+	-webkit-mask-repeat: repeat-x;
+	mask-repeat: repeat-x;
+	animation:
+		m3-progress-pi-h1 1.75s linear infinite,
+		m3-progress-pi-t1 1.75s linear infinite,
+		m3-progress-wave-flow 0.9s linear infinite;
+}
+
+/* ============================================================
+ * 4. 关键帧
+ * ============================================================
+ * 改名策略：参照站点的关键帧名带 Svelte 作用域哈希
+ * （svelte-1qery7p-pi-h1），这里统一改为 m3-progress- 前缀，
+ * 避免与将来可能存在的同名哈希冲突。
+ * 数值与时间点逐条保留原值。
+ */
+@keyframes m3-progress-pi-h1 {
+	0% {
+		--pi-h1: 0;
+	}
+	57.14% {
+		--pi-h1: 1;
+	}
+	100% {
+		--pi-h1: 1;
+	}
+}
+
+@keyframes m3-progress-pi-t1 {
+	0%,
+	14.29% {
+		--pi-t1: 0;
+	}
+	71.43% {
+		--pi-t1: 1;
+	}
+	100% {
+		--pi-t1: 1;
+	}
+}
+
+@keyframes m3-progress-pi-h2 {
+	0%,
+	37.14% {
+		--pi-h2: 0;
+	}
+	85.71% {
+		--pi-h2: 1;
+	}
+	100% {
+		--pi-h2: 1;
+	}
+}
+
+@keyframes m3-progress-pi-t2 {
+	0%,
+	51.43% {
+		--pi-t2: 0;
+	}
+	100% {
+		--pi-t2: 1;
+	}
+}
+
+@keyframes m3-progress-wave-flow {
+	0% {
+		-webkit-mask-position: 0 0;
+		mask-position: 0 0;
+	}
+	100% {
+		-webkit-mask-position: 40px 0;
+		mask-position: 40px 0;
+	}
+}
+/* ============================================================
+ * 5. Reduced Motion 降级
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+	.m3-progress--indeterminate .m3-progress__line {
+		animation: none !important;
+	}
+}
+
+html.motion-reduced .m3-progress--indeterminate .m3-progress__line {
+	animation: none !important;
+}
+
+/* ============================================================
+ * 6. 集成方案（留给后续，需与现有 swup 进度条协调）
+ * ============================================================
+ * Firefly 现状：`<div id="progress-bar">`（Layout.astro 内），
+ * 样式在 transition.css，宽度由 swup-transitions.ts 逐帧写入。
+ *
+ * 要真正用上本文件，需要：
+ *   1. 新建 `src/components/controls/RouteProgress.astro`，输出结构：
+ *        <div class="route-progress route-progress--dual" aria-hidden="true">
+ *          <div class="m3-progress m3-progress--linear m3-progress--indeterminate"
+ *               role="progressbar" aria-label="加载中"
+ *               style="--pi-color: var(--primary); --pi-track: ...; --pi-gap: 4px;">
+ *            <div class="m3-progress__track">
+ *              <div class="m3-progress__line m3-progress__line--1"></div>
+ *              <div class="m3-progress__line m3-progress__line--2"></div>
+ *            </div>
+ *          </div>
+ *        </div>
+ *   2. 在 Layout.astro 用它替换 `<div id="progress-bar"></div>`
+ *   3. 让 swup-transitions.ts 改为切换 data-* 状态（如
+ *      `data-route-progress="loading|done"`）而不是写 width，
+ *      由 CSS 决定不确定态/确定态的切换
+ *
+ * 未完成该集成前，本文件不产生任何视觉变化（所有规则都挂在
+ * .m3-progress 类名下，而现有进度条不使用这些类名）。
+ */

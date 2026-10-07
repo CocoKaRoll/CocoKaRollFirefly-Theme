@@ -1,0 +1,196 @@
+/**
+ * 全局毛玻璃（Frosted Glass）体系
+ * ============================================================
+ * 把原本只覆盖 `#navbar` / `.dropdown-content` / `.float-panel` 的毛玻璃，
+ * 统一成一组 `--glass-*` 令牌，并铺到全站所有玻璃面：
+ *   - 顶栏与浮层面板（已存在，这里改为消费统一令牌）
+ *   - `.card-base`：侧栏 widget、个人资料卡、文章卡、分类栏、悬浮按钮
+ *   - `.btn-card` / `.bg-(--card-bg)` / `.series-nav-toggle`：按钮与系列导航
+ *
+ * 观感：轻量磨砂。模糊半径默认 12px（`--glass-blur`），玻璃面底色
+ * 用 `color-mix` 按 `--glass-surface-alpha` 与页面底色混合，避免生硬的白底。
+ *
+ * 交互：精确命中鼠标时，卡片描边加深并叠加一圈柔光（D 式描边光晕）。
+ * 用 `box-shadow` 画环，不占布局、不产生位移。
+ *
+ * 性能：只在 `html[data-glass="on"]` 下启用 —— 该属性由 Layout.astro 在
+ * 「配置开启 且 当前存在壁纸」时写入。纯色背景（无壁纸）时不存在可模糊对象，
+ * 此时完全不下发 `backdrop-filter`，避免移动端白付一次全屏重栅格化。
+ * 另外模糊半径沿用 Firefly 已有的「可配置 + 可归零」约定：把 `--glass-blur`
+ * 设为 0 即整体退回不透明卡片，无需改任何选择器。
+ * ============================================================
+ */
+
+@reference "tailwindcss";
+
+/* ============================================
+ * 令牌：单一事实来源
+ * 具体数值由 `backgroundWallpaper.glass` 配置注入（见 Layout.astro），
+ * 这里的 fallback 保证不注入时也有可用的默认值。
+ * ============================================ */
+:root {
+	/* 模糊半径：0 即关闭毛玻璃（退回不透明卡片） */
+	--glass-blur: 12px;
+	/* 玻璃面不透明度：越接近 1 越实，越接近 0 越透 */
+	--glass-surface-alpha: 0.94;
+}
+
+/* 玻璃面底色：按不透明度与卡片底色混合（明暗各自取 --card-bg 的对应来源） */
+:root {
+	--glass-surface: color-mix(
+		in oklab,
+		var(--card-bg) calc(var(--glass-surface-alpha) * 100%),
+		transparent
+	);
+}
+
+/* ============================================
+ * 卡片：毛玻璃化
+ * ============================================
+ * 既有规则 `.wallpaper-transparent .card-base` 只在「覆盖透明 / 全屏 hero」
+ * 模式下生效（由 setting-utils 切换 body class）。这里用 `html[data-glass="on"]`
+ * 把它扩展到所有带壁纸的页面，观感全域一致。
+ */
+
+/* 玻璃面底色（不改 backdrop-filter，避免与下面的模糊规则争抢同一属性） */
+html[data-glass="on"] .card-base,
+html[data-glass="on"] .card-base-transparent {
+	background-color: var(--glass-surface) !important;
+}
+
+/* 模糊层：与底色分开声明，避免被 `.wallpaper-transparent` 的 !important 覆盖 */
+html[data-glass="on"] .card-base,
+html[data-glass="on"] .card-base-transparent {
+	backdrop-filter: blur(var(--glass-blur));
+	-webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* 玻璃边缘：浅色高光 + 发丝线，让玻璃面在壁纸上「立」起来 */
+html[data-glass="on"] .card-base,
+html[data-glass="on"] .card-base-transparent {
+	border: 1px solid var(--glass-border);
+	box-shadow: var(--glass-highlight);
+}
+
+/* 卡片过渡：颜色 + 描边 + 阴影，用于 hover 光晕平滑出现 */
+html[data-glass="on"] .card-base,
+html[data-glass="on"] .card-base-transparent {
+	transition:
+		background-color var(--duration-normal, 150ms) var(--ease-standard, ease),
+		border-color var(--duration-medium, 200ms) var(--ease-standard, ease),
+		box-shadow var(--duration-medium, 200ms) var(--ease-standard, ease);
+}
+
+/* ============================================
+ * 交互：D 式描边光晕（精确指针设备才启用）
+ * ============================================
+ * 实线描边 + 一圈更淡的外环，两层都用 box-shadow，不占布局、不产生位移。
+ * 外环用 color-mix 把「深色描边」降到 22%，在浅色壁纸上就是那圈柔和的暗色光晕。
+ */
+@media (hover: hover) and (pointer: fine) {
+	html[data-glass="on"] .card-base:hover,
+	html[data-glass="on"] .btn-card:hover {
+		border-color: var(--glass-ring);
+		box-shadow:
+			var(--glass-highlight),
+			0 0 0 3px color-mix(in oklab, var(--glass-ring) 22%, transparent);
+	}
+}
+
+/* 键盘可达性：焦点态与 hover 保持同一套描边光晕 */
+html[data-glass="on"] .card-base:focus-visible,
+html[data-glass="on"] .btn-card:focus-visible {
+	border-color: var(--glass-ring);
+	box-shadow:
+		var(--glass-highlight),
+		0 0 0 3px color-mix(in oklab, var(--glass-ring) 22%, transparent);
+}
+
+/* 减少动态效果：不参与过渡，只保留状态结果 */
+@media (prefers-reduced-motion: reduce) {
+	html[data-glass="on"] .card-base,
+	html[data-glass="on"] .card-base-transparent {
+		transition: none;
+	}
+}
+
+html.motion-reduced[data-glass="on"] .card-base {
+	transition: none;
+}
+
+/* ============================================
+ * 按钮 / 系列导航 / 使用卡片底色的容器
+ * ============================================
+ * 与 `.wallpaper-transparent` 的那几条一一对应，但从「仅透明模式」放宽到
+ * 「所有带壁纸的玻璃态页面」。
+ */
+html[data-glass="on"] .btn-card,
+html[data-glass="on"] .bg-\(--card-bg\),
+html[data-glass="on"] .series-nav-toggle {
+	background-color: var(--glass-surface) !important;
+}
+
+/* 仅对卡片类按钮补模糊：分页器等小控件数量多，模糊收益低、成本高 */
+html[data-glass="on"] .btn-card {
+	backdrop-filter: blur(var(--glass-blur));
+	-webkit-backdrop-filter: blur(var(--glass-blur));
+	border: 1px solid var(--glass-border);
+	transition:
+		background-color var(--duration-normal, 150ms) var(--ease-standard, ease),
+		border-color var(--duration-medium, 200ms) var(--ease-standard, ease),
+		box-shadow var(--duration-medium, 200ms) var(--ease-standard, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html[data-glass="on"] .btn-card {
+		transition: none;
+	}
+}
+
+/* ============================================
+ * 沉浸阅读：一律回到不透明
+ * ============================================
+ * 与 immersive-reading.css 的既有约定一致 —— 进入沉浸态时阅读面不透明，
+ * 保证长文阅读的对比度。
+ */
+html[data-glass="on"][data-immersive-reading] .card-base,
+html[data-glass="on"][data-immersive-reading] .btn-card {
+	background-color: var(--card-bg) !important;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border-color: transparent;
+	box-shadow: none;
+}
+
+/* ============================================
+ * 过渡期保护
+ * ============================================
+ * 主题切换本身已经会逐个关掉导航栏与浮层的 backdrop-filter（main.css），
+ * 卡片层同步关掉，避免切换瞬间大量玻璃面同时重绘。
+ */
+.is-theme-transitioning .card-base,
+.is-theme-transitioning .btn-card {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* Swup 切页期间同理：过渡中的卡片不做模糊，减少重绘抖动 */
+.is-page-transitioning .card-base,
+.is-page-transitioning .btn-card {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* ============================================
+ * 移动端降级
+ * ============================================
+ * 小屏上卡片常整屏铺开，逐个 backdrop-filter 会在滚动时反复重栅格化。
+ * 这里把半径减半，兼顾观感与滚动流畅度（可用 glass.enable: false 整体关闭）。
+ */
+@media (max-width: 767px) {
+	html[data-glass="on"] .card-base,
+	html[data-glass="on"] .card-base-transparent {
+		backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+		-webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+	}
+}

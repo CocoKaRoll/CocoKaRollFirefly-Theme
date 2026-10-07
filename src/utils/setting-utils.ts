@@ -73,6 +73,54 @@ export function getHue(): number {
 	return stored ? Number.parseInt(stored, 10) : getDefaultHue();
 }
 
+/**
+ * HCT 动态配色增强（懒加载单例）。
+ *
+ * 刻意用动态 import：`@material/material-color-utilities` 约 60KB，不该进主包。
+ * 这里做成「首次需要时才拉取、之后缓存」，且可用
+ * siteConfig.themeColor.dynamicPalette === false 完全关闭
+ * （关闭时不产生任何请求，符合「可选功能零额外负担」约定）。
+ */
+type PaletteEnhancer = (
+	hue: number,
+	options?: { isDark?: boolean },
+) => Promise<Record<string, string> | null>;
+
+let paletteEnhancer: PaletteEnhancer | null = null;
+let paletteEnhancerLoading: Promise<void> | null = null;
+let paletteBound = false;
+
+function syncHctPalette(hue: number): void {
+	if (siteConfig.themeColor?.dynamicPalette === false) return;
+	if (typeof document === "undefined") return;
+
+	const run = () => {
+		if (!paletteEnhancer) return;
+		// 不 await：首帧路径不能被阻塞；失败由 color-utils 内部静默降级
+		void paletteEnhancer(hue);
+	};
+
+	if (paletteEnhancer) {
+		run();
+		return;
+	}
+	// 只发一次 import 请求；完成后重放一次以套用当前 hue
+	paletteEnhancerLoading ??= import("./color-utils").then((m) => {
+		paletteEnhancer = m.enhancePaletteWithHct as PaletteEnhancer;
+	});
+	void paletteEnhancerLoading.then(run);
+
+	if (!paletteBound) {
+		paletteBound = true;
+		// 明暗切换后需重算（HCT 的明暗是两套独立角色值）
+		window.addEventListener("theme-change", () => {
+			const el = document.querySelector(":root") as HTMLElement | null;
+			const hue = Number.parseFloat(el?.style.getPropertyValue("--hue") ?? "");
+			if (Number.isFinite(hue)) run();
+		});
+	}
+}
+
 export function setHue(hue: number): void {
 	// 先检查是否在浏览器环境
 	if (
@@ -88,6 +136,8 @@ export function setHue(hue: number): void {
 		return;
 	}
 	r.style.setProperty("--hue", String(hue));
+	// 叠加 HCT 完整调色板（异步、可失败、可关闭）
+	syncHctPalette(hue);
 }
 
 export function applyThemeToDocument(theme: LIGHT_DARK_MODE): void {

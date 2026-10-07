@@ -1,5 +1,14 @@
 export type FullscreenWallpaperLayout = "classic" | "hero";
 
+/** 页面背景纹理预设（对齐参照站点的 Ambient Texture 系统） */
+export type TexturePreset =
+	| "none"
+	| "starlight"
+	| "cyber-dots"
+	| "topography"
+	| "geometric"
+	| "sakura";
+
 export type BackgroundWallpaperConfig = {
 	mode: "banner" | "fullscreen" | "overlay" | "none"; // 壁纸模式：banner横幅模式、fullscreen全屏壁纸、overlay全屏透明覆盖模式或none纯色背景
 	playerEnable?: boolean; // 是否启用背景视频播放，默认false
@@ -119,5 +128,20 @@ export type BackgroundWallpaperConfig = {
 						mobile: boolean; // 移动端是否启用模糊渐变
 				  }; // 是否启用模糊渐变，支持布尔值或分别设置桌面端和移动端，默认 true
 		};
+	};
+	// 全局毛玻璃（Frosted Glass）配置
+	// 统一驱动全站玻璃面：导航栏 / 浮层面板 / 卡片 / 按钮 / 系列导航
+	glass?: {
+		enable?: boolean; // 总开关，false 时不下发 data-glass，全站退回不透明卡片，默认 true
+		blur?: number; // 玻璃面模糊半径，单位px（内部裁剪到 0-40），0 即关闭模糊，默认 12
+		surfaceAlpha?: number; // 玻璃面不透明度，0.3-1 之间，越接近 1 越实，默认 0.94
+	};
+	// 页面背景纹理（Ambient Texture）配置
+	// 纯 CSS + 内联 SVG Data URI，零外部请求；图案着色跟随主题令牌，
+	// 因此在 HCT 动态配色生效后会自动跟着种子色变化。
+	texture?: {
+		enable?: boolean; // 总开关。false 时不输出画布 DOM、不注入样式，零额外负担；默认 false
+		defaultPreset?: TexturePreset; // 站点默认预设，默认 "none"
+		defaultOpacity?: number; // 默认浓度，0.02-0.5，默认 0.12
 	};
 };

@@ -41,6 +41,11 @@ export type SiteConfig = {
 	themeColor: {
 		hue: number;
 		defaultMode?: LIGHT_DARK_MODE; // 默认模式：浅色、深色或跟随系统
+		// 是否启用 HCT 动态配色增强（Material Color Utilities）。
+		// 开启后首帧之后会异步写入 --mc-* 完整调色板，让配色从
+		// 「单一 hue + oklch 公式」升级为 M3 的 HCT 调色板；
+		// 设为 false 则完全不加载该模块（零额外负担），保持原配色。
+		dynamicPalette?: boolean;
 	};
 
 	// 页面整体宽度（单位：rem）
